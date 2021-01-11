@@ -9,7 +9,6 @@ axios.get("https://api.covidtracking.com/v1/us/current.json").then((data) => {
   covidUsData = data;
 });
 
-
 axios
   .get("https://api.covidtracking.com/v1/states/current.json")
   .then((data) => {
