@@ -14,7 +14,7 @@ axios
   .then((data) => {
     covidStateData = data;
     drawMap();
-  });
+});
 
 let drawMap = () => {
   svg
