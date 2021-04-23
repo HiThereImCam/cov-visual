@@ -1,18 +1,22 @@
 import statePopulation from "../config/population";
+import legend from "../config/legend";
 
 const height = 610;
 const width = 975;
 
 // map takes in an object and callback
-let stateVaxRecords = {};
-
-window.stateRecords = stateVaxRecords;
 
 let svg = d3
   .select("body")
   .append("svg")
   .attr("width", width)
   .attr("height", height);
+
+let stateVaxRecords = {};
+
+window.stateRecords = stateVaxRecords;
+
+var path = d3.geoPath();
 
 let usAlbersJson = d3.json(
   "https://cdn.jsdelivr.net/npm/us-atlas@3/states-albers-10m.json"
@@ -35,24 +39,31 @@ let statePopulationObj = statePopulation;
 
 // creating the legend at the top
 
+let color = d3.scaleQuantize().domain([0, 100]).range(d3.schemeGreens[8]);
+svg
+  .append("g")
+  .attr("transform", "translate(610,20)")
+  .append(() =>
+    legend({ color, title: "Vaccinated Population (%)", width: 260 })
+  );
+
 // let x = d3.scaleLinear().domain([0, 10]);
 // .rangeRound([10, 20, 30, 40, 50, 60, 70, 80, 90]);
 
 // rangeRound([])
-//.rangeRound([600, 860]);
+// .rangeRound([600, 860]);
 
-// this deals with the width of the scale
-var x = d3.scaleLinear().domain([0, 100]).range([300, 600]);
+//this deals with the width of the scale
+// var x = d3.scaleLinear().domain([0, 100]).range([300, 600]);
 
-console.log("This is x: ", x);
+// var x = d3.scaleLinear().domain([10, 100]).rangeRound([600, 860]);
 
-// var x = d3.scaleLinear().domain([10, 100]).rangeRound([10, 100]);
 // let color = d3
 //   .scaleThreshold()
-//   .domain(d3.range(1, 10))
-//   .range(d3.schemeGreens[10]);
+//   .domain(d3.range(10, 100))
+//   .range(d3.schemePaired[10]);
 
-// let color = d3.scaleThreshold().domain([0, 100]).range(d3.schemeGreens[101]);
+// let color = d3.scaleThreshold().domain([0, 100]).
 
 // let color = d3.scaleThreshold().domain([0, 10]).range(d3.schemeGreens[10]);
 
@@ -105,9 +116,10 @@ console.log("This is x: ", x);
 //       return i ? x : x + "%";
 //     })
 //     .tickValues(color.domain())
+//     .ticks(10)
 // )
 //   .select(".domain")
-//  .remove();
+//   .remove();
 
 // g in this case is the legend
 
@@ -139,14 +151,32 @@ let drawMap = (usTopoData, stateVaxObj, statePopulation) => {
         // new york === new york state in stateVaxObx
         let percentage = statePopulation[d_State]
           ? d_State === "New York"
-            ? stateVaxObj["New York State"].total_vaccinations /
-              statePopulation[d_State]
-            : stateVaxObj[d_State].total_vaccinations / statePopulation[d_State]
+            ? (stateVaxObj["New York State"].people_fully_vaccinated /
+                statePopulation[d_State]) *
+              100
+            : (stateVaxObj[d_State].people_fully_vaccinated /
+                statePopulation[d_State]) *
+              100
           : 0;
-      });
-    // .attr("d", d3.geoPath())
-    // .style("fill", "#ccc")
-    // .style("stroke", "#333");
+
+        // turning percentage into a float with 2 decimal points
+        percentage = Number.parseFloat(percentage).toPrecision(4);
+        console.log("this is percentage: ", percentage);
+        let col = color(percentage);
+        console.log("This is col: ", col);
+        return col;
+      })
+      .attr("d", path);
+
+    svg
+      .append("path")
+      .datum(
+        topojson.mesh(usTopoData, usTopoData.objects.states, (a, b) => a !== b)
+      )
+      .attr("fill", "none")
+      .attr("stroke", "navy")
+      .attr("stroke-linejoin", "round")
+      .attr("d", path);
   } catch (e) {
     console.log("error: ", e);
   }
