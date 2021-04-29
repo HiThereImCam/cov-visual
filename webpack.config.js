@@ -21,9 +21,15 @@ module.exports = {
   },
   output: {
     path: path.resolve(__dirname, "./dist"),
+    publicPath: "/dist/",
     filename: "bundle.js",
   },
   devServer: {
     contentBase: path.resolve(__dirname, "./dist"),
+    inline: true,
+    hot: true,
+    port: 8000,
   },
+  mode: "development",
+  //switch to production when ready
 };
