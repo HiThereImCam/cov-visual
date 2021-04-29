@@ -1,3 +1,5 @@
+// this legend function was written by Mike Bostock and posted on Observable HQ
+
 function legend({
   color,
   title,

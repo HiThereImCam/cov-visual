@@ -22,6 +22,7 @@ let usAlbersJson = d3.json(
   "https://cdn.jsdelivr.net/npm/us-atlas@3/states-albers-10m.json"
 );
 
+let day = new Date();
 let stateVaxRecords = {};
 let previousDayStateTotalVax = {};
 let twoDaysAgoStateTotalVax = {};
@@ -29,7 +30,6 @@ let twoDaysAgoStateTotalVax = {};
 window.stateRecords = stateVaxRecords;
 window.previousDay = previousDayStateTotalVax;
 window.twoDaysAgo = twoDaysAgoStateTotalVax;
-// clear st
 
 let date;
 
@@ -64,17 +64,17 @@ let stateVaxCSV = d3.csv(
         previousDayStateTotalVax[stateVaxObj.location] =
           stateVaxObj.people_fully_vaccinated;
 
+        date = stateVaxObj.date;
         stateVaxRecords[stateVaxObj.location] = stateVaxObj;
       }
     } else {
       if (stateVaxObj.date == previousDay) {
-        console.log(stateVaxObj);
-
         previousDayStateTotalVax[stateVaxObj.location] =
           stateVaxObj.people_fully_vaccinated;
       }
 
       if (stateVaxObj.date == currentDay) {
+        date = stateVaxObj.date;
         stateVaxRecords[stateVaxObj.location] = stateVaxObj;
       }
     }
@@ -105,9 +105,10 @@ let tooltip = d3
   .style("background-color", "white")
   .style("border", "1px solid")
   .style("border-radius", "5px")
-  .style("width", "300px")
+  .style("width", "25%")
   .style("height", "82px")
-  .style("padding", "10px")
+  .style("padding", "15px")
+  .style("padding-bottom", "20px")
   .style("visibility", "hidden");
 
 Promise.all([usAlbersJson, stateVaxCSV, statePopulationObj]).then((values) => {
@@ -128,34 +129,92 @@ let drawMap = (usTopoData, stateVax, statePopulation) => {
       .enter()
       .append("path")
       .attr("fill", (d) => {
-        let d_State = d.properties.name;
+        let stateName = d.properties.name;
 
-        let percentage = statePopulation[d_State]
-          ? d_State === "New York"
+        // stateName has other territories of the united states like Virigin Islands included
+        let percentage = statePopulation[stateName]
+          ? stateName === "New York"
             ? (stateVax["New York State"].people_fully_vaccinated /
-                statePopulation[d_State]) *
+                statePopulation[stateName]) *
               100
-            : (stateVax[d_State].people_fully_vaccinated /
-                statePopulation[d_State]) *
+            : (stateVax[stateName].people_fully_vaccinated /
+                statePopulation[stateName]) *
               100
           : 0;
-
-        // let percentageIncrease = statePopulation[d_State] ? d_State === "New York"
 
         // turning percentage into a float with 2 decimal points
         percentage = Number.parseFloat(percentage).toPrecision(4);
 
-        d.properties.name = d_State;
-        d.properties.percentage = percentage;
-        d.properties.statePopulation = statePopulation[d_State];
-        d.properties.date = date;
-        // d.properties.previousDay = priorDay;
+        // let increasedPercentage;
 
-        d_State === "New York"
-          ? (d.properties.fully_vaccinated =
-              stateVax["New York State"].people_fully_vaccinated)
-          : (d.properties.fully_vaccinated =
-              stateVax[d_State].people_fully_vaccinated);
+        // // must check the time to see which Vax obj to use
+
+        // if (day.getHours() < 13) {
+        //   // use twoDaysAgo obj
+        //   // first check if the state !== to a territory
+
+        //   increasedPercentage = statePopulation[stateName]
+        //     ? stateName === "New York"
+        //       ? percentage -
+        //         (twoDaysAgoStateTotalVax["New York State"] /
+        //           statePopulation[stateName]) *
+        //           100
+        //       : percentage -
+        //         (twoDaysAgoStateTotalVax[stateName] /
+        //           statePopulation[stateName]) *
+        //           100
+        //     : 0;
+        // } else {
+        //   increasedPercentage = statePopulation[stateName]
+        //     ? stateName === "New York"
+        //       ? percentage -
+        //         (previousDayStateTotalVax["New York State"] /
+        //           statePopulation[stateName]) *
+        //           100
+        //       : percentage -
+        //         (previousDayStateTotalVax[stateName] /
+        //           statePopulation[stateName]) *
+        //           100
+        //     : 0;
+        // }
+
+        // increasedPercentage = Number.parseFloat(
+        //   increasedPercentage
+        // ).toPrecision(4);
+
+        let increasedAmount;
+
+        if (day.getHours() < 13) {
+          // use twoDaysAgo obj
+          // first check if the state !== to a territory
+
+          increasedAmount = statePopulation[stateName]
+            ? stateName === "New York"
+              ? stateVax["New York State"].people_fully_vaccinated -
+                twoDaysAgoStateTotalVax["New York State"]
+              : stateVax[stateName].people_fully_vaccinated -
+                twoDaysAgoStateTotalVax[stateName]
+            : 0;
+        } else {
+          increasedAmount = statePopulation[stateName]
+            ? stateName === "New York"
+              ? stateVax["New York State"].people_fully_vaccinated -
+                previousDayStateTotalVax["New York State"]
+              : stateVax[stateName].people_fully_vaccinated -
+                previousDayStateTotalVax[stateName]
+            : 0;
+        }
+
+        d.properties.percentage = percentage;
+        // d.properties.increasedPercentage = increasedPercentage;
+        d.properties.increasedAmount = increasedAmount;
+        d.properties.statePopulation = statePopulation[stateName];
+        d.properties.date = date;
+
+        d.properties.fully_vaccinated =
+          stateName === "New York"
+            ? stateVax["New York State"].people_fully_vaccinated
+            : stateVax[stateName].people_fully_vaccinated;
 
         let col = color(percentage);
 
@@ -169,6 +228,7 @@ let drawMap = (usTopoData, stateVax, statePopulation) => {
           statePopulation,
           fully_vaccinated,
           date,
+          increasedAmount,
         } = d.properties;
 
         tooltip.transition().duration(200).style("opacity", 0.9);
@@ -180,8 +240,8 @@ let drawMap = (usTopoData, stateVax, statePopulation) => {
             <span>${name} (as of ${date})</span>
             <span>Population (as of 2019): ${statePopulation}</span>
             <span>Number of people vaccinated: ${fully_vaccinated}</span>
-            <span>Percentage of people vaccinated: ${percentage} %</span>
-            <span>Percentage increase from previous day ()
+            <span>Increase from the previous day: ${increasedAmount} people</span>
+            <span>Percentage of people vaccinated: ${percentage}%</span>
           </div>
           `);
       })
