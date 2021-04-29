@@ -1,7 +1,6 @@
 html,
 body {
   height: 100%;
-  width: 100%;
 }
 
 body {
@@ -9,13 +8,56 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  background: linear-gradient(0deg, #00000088 30%, #ffffff44 100%);
+  overflow: hidden;
+}
+
+header {
+  font-family: "Signika", sans-serif;
+}
+
+footer {
+  position: absolute;
+  bottom: 10px;
+}
+
+@media only screen and (max-width: 1500px) {
+  header {
+    position: absolute !important;
+    top: -2% !important;
+  }
+
+  footer {
+    bottom: 2% !important;
+  }
+}
+
+.header-title {
+  font-size: 35px;
+}
+
+.header-p {
+  font-size: 18px;
 }
 
 svg {
-  background-color: white;
+  /* background-color: white; */
 }
 
 #svg {
   height: 700px;
   width: 1020px;
 }
+.background {
+  fill: none;
+  pointer-events: all;
+}
+
+/* .tooltip:hover {
+  position: absolute;
+  background-color: white;
+  border: 1px solid;
+  border-radius: 5px;
+
+  padding: 10px;
+} */
