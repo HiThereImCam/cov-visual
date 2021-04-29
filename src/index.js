@@ -8,32 +8,6 @@ let width = 975;
 
 // map takes in an object and callback
 
-<<<<<<< HEAD
-// axios.get("https://api.covidtracking.com/v1/us/current.json").then((data) => {
-//   covidUsData = data;
-// });
-
-axios
-  .get("https://api.covidtracking.com/v1/states/current.json")
-  .then((data) => {
-    covidStateData = data;
-    drawMap();
-});
-
-let drawMap = () => {
-  svg
-    .selectAll("path")
-    .data(states)
-    .enter()
-    .append("path")
-    .attr("d", d3.geoPath())
-    .attr("fill", (statesItem) => {
-      let stateName = statesItem.properties.name;
-
-      let infected = covidStateData.data.find((covidItem) => {
-        return covidItem.state === statesAbbr[stateName];
-      });
-=======
 let svg = d3
   .select("body")
   .append("svg")
@@ -52,10 +26,6 @@ let day = new Date();
 let stateVaxRecords = {};
 let previousDayStateTotalVax = {};
 let twoDaysAgoStateTotalVax = {};
-
-window.stateRecords = stateVaxRecords;
-window.previousDay = previousDayStateTotalVax;
-window.twoDaysAgo = twoDaysAgoStateTotalVax;
 
 let date;
 
@@ -76,7 +46,6 @@ let stateVaxCSV = d3.csv(
     let currentDay = formatTime(today);
     let previousDay = formatTime(yesterday);
     let twoDaysAgo = formatTime(todayMinusTwo);
->>>>>>> 8ce980aece76835652471a1b06c3aebdc6111230
 
     // we don't know when the API updates. We just know it happens sometime between 12 and 1pm so
     // I'm taking the max of the two to be safe.
