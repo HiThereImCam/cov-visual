@@ -27,10 +27,6 @@ let stateVaxRecords = {};
 let previousDayStateTotalVax = {};
 let twoDaysAgoStateTotalVax = {};
 
-window.stateRecords = stateVaxRecords;
-window.previousDay = previousDayStateTotalVax;
-window.twoDaysAgo = twoDaysAgoStateTotalVax;
-
 let date;
 
 let stateVaxCSV = d3.csv(
@@ -105,7 +101,7 @@ let tooltip = d3
   .style("background-color", "white")
   .style("border", "1px solid")
   .style("border-radius", "5px")
-  .style("width", "25%")
+  .style("width", "315px")
   .style("height", "82px")
   .style("padding", "15px")
   .style("padding-bottom", "20px")

@@ -30,6 +30,10 @@ footer {
   footer {
     bottom: 2% !important;
   }
+
+  svg {
+    margin-top: 8%;
+  }
 }
 
 .header-title {
@@ -40,24 +44,7 @@ footer {
   font-size: 18px;
 }
 
-svg {
-  /* background-color: white; */
-}
-
-#svg {
-  height: 700px;
-  width: 1020px;
-}
 .background {
   fill: none;
   pointer-events: all;
 }
-
-/* .tooltip:hover {
-  position: absolute;
-  background-color: white;
-  border: 1px solid;
-  border-radius: 5px;
-
-  padding: 10px;
-} */
