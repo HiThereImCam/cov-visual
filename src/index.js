@@ -1,6 +1,5 @@
 import statePopulation from "../config/population";
 import legend from "../config/legend";
-import { html } from "htl";
 
 let height = 610;
 let width = 975;
@@ -29,6 +28,8 @@ let twoDaysAgoStateTotalVax = {};
 
 let date;
 
+window.stateVaxRecords = stateVaxRecords;
+
 let stateVaxCSV = d3.csv(
   "https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/vaccinations/us_state_vaccinations.csv",
   (stateVaxObj) => {
@@ -47,32 +48,35 @@ let stateVaxCSV = d3.csv(
     let previousDay = formatTime(yesterday);
     let twoDaysAgo = formatTime(todayMinusTwo);
 
-    // we don't know when the API updates. We just know it happens sometime between 12 and 1pm so
-    // I'm taking the max of the two to be safe.
+    /**
+     * issue: the data coming back is one obj at a time
+     * meaning that if I'm looking for one particular date, i'd have to iterate
+     * through every one of the objects to find the data
+     */
 
-    if (today.getHours() < 13) {
-      if (stateVaxObj.date == twoDaysAgo) {
-        twoDaysAgoStateTotalVax[stateVaxObj.location] =
-          stateVaxObj.people_fully_vaccinated;
-      }
+    /**
+     * Possible solution:
+     *   - The only object that only contains the number of people
+     *     vaccinated is twoDaysAgoStateTotalVax obj
+     *   - Other wise both previousDay and stateVaxRecords need to have all
+     *     of the data
+     *
+     *   The parsing of this data will be done when drawing the map
+     */
 
-      if (stateVaxObj.date == previousDay) {
-        previousDayStateTotalVax[stateVaxObj.location] =
-          stateVaxObj.people_fully_vaccinated;
+    if (stateVaxObj.date == twoDaysAgo) {
+      twoDaysAgoStateTotalVax[stateVaxObj.location] =
+        stateVaxObj.people_fully_vaccinated;
+    }
 
-        date = stateVaxObj.date;
-        stateVaxRecords[stateVaxObj.location] = stateVaxObj;
-      }
-    } else {
-      if (stateVaxObj.date == previousDay) {
-        previousDayStateTotalVax[stateVaxObj.location] =
-          stateVaxObj.people_fully_vaccinated;
-      }
+    if (stateVaxObj.date == previousDay) {
+      date = stateVaxObj.date;
+      previousDayStateTotalVax[stateVaxObj.location] = stateVaxObj;
+    }
 
-      if (stateVaxObj.date == currentDay) {
-        date = stateVaxObj.date;
-        stateVaxRecords[stateVaxObj.location] = stateVaxObj;
-      }
+    if (stateVaxObj.date == currentDay) {
+      date = stateVaxObj.date;
+      stateVaxRecords[stateVaxObj.location] = stateVaxObj;
     }
   }
 );
@@ -108,7 +112,13 @@ let tooltip = d3
   .style("visibility", "hidden");
 
 Promise.all([usAlbersJson, stateVaxCSV, statePopulationObj]).then((values) => {
-  drawMap(values[0], stateVaxRecords, values[2]);
+  if (Object.keys(stateVaxRecords).length < 1) {
+    console.log("here");
+    drawMap(values[0], previousDayStateTotalVax, values[2]);
+  } else {
+    console.log("hello");
+    drawMap(values[0], stateVaxRecords, values[2]);
+  }
 });
 
 let drawMap = (usTopoData, stateVax, statePopulation) => {
@@ -127,6 +137,9 @@ let drawMap = (usTopoData, stateVax, statePopulation) => {
       .attr("fill", (d) => {
         let stateName = d.properties.name;
 
+        console.log("two days ago: ", twoDaysAgoStateTotalVax);
+        console.log("stateVax: ", stateVax);
+
         // stateName has other territories of the united states like Virigin Islands included
         let percentage = statePopulation[stateName]
           ? stateName === "New York"
@@ -141,46 +154,9 @@ let drawMap = (usTopoData, stateVax, statePopulation) => {
         // turning percentage into a float with 2 decimal points
         percentage = Number.parseFloat(percentage).toPrecision(4);
 
-        // let increasedPercentage;
-
-        // // must check the time to see which Vax obj to use
-
-        // if (day.getHours() < 13) {
-        //   // use twoDaysAgo obj
-        //   // first check if the state !== to a territory
-
-        //   increasedPercentage = statePopulation[stateName]
-        //     ? stateName === "New York"
-        //       ? percentage -
-        //         (twoDaysAgoStateTotalVax["New York State"] /
-        //           statePopulation[stateName]) *
-        //           100
-        //       : percentage -
-        //         (twoDaysAgoStateTotalVax[stateName] /
-        //           statePopulation[stateName]) *
-        //           100
-        //     : 0;
-        // } else {
-        //   increasedPercentage = statePopulation[stateName]
-        //     ? stateName === "New York"
-        //       ? percentage -
-        //         (previousDayStateTotalVax["New York State"] /
-        //           statePopulation[stateName]) *
-        //           100
-        //       : percentage -
-        //         (previousDayStateTotalVax[stateName] /
-        //           statePopulation[stateName]) *
-        //           100
-        //     : 0;
-        // }
-
-        // increasedPercentage = Number.parseFloat(
-        //   increasedPercentage
-        // ).toPrecision(4);
-
         let increasedAmount;
 
-        if (day.getHours() < 13) {
+        if (Object.keys(stateVaxRecords).length < 1) {
           // use twoDaysAgo obj
           // first check if the state !== to a territory
 
@@ -196,8 +172,9 @@ let drawMap = (usTopoData, stateVax, statePopulation) => {
             ? stateName === "New York"
               ? stateVax["New York State"].people_fully_vaccinated -
                 previousDayStateTotalVax["New York State"]
+                  .people_fully_vaccinated
               : stateVax[stateName].people_fully_vaccinated -
-                previousDayStateTotalVax[stateName]
+                previousDayStateTotalVax[stateName].people_fully_vaccinated
             : 0;
         }
 
