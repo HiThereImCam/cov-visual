@@ -25,8 +25,11 @@ let day = new Date();
 let stateVaxRecords = {};
 let previousDayStateTotalVax = {};
 let twoDaysAgoStateTotalVax = {};
+let threeDaysAgoStateTotalVax = {};
+let twoDaysAgoVaxRecords = {};
 
 let date;
+let dateTwoDaysAgo;
 
 window.stateVaxRecords = stateVaxRecords;
 
@@ -44,10 +47,15 @@ let stateVaxCSV = d3.csv(
     let todayMinusTwo = new Date(today);
     todayMinusTwo.setDate(todayMinusTwo.getDate() - 2);
 
+    let todayMinusThree = new Date(today);
+    todayMinusThree.setDate(todayMinusTwo.getDate() - 3);
+
     let currentDay = formatTime(today);
     let previousDay = formatTime(yesterday);
     let twoDaysAgo = formatTime(todayMinusTwo);
+    let threeDaysAgo = formatTime(todayMinusThree);
 
+    console.log("this is three days ago: ", threeDaysAgo);
     /**
      * issue: the data coming back is one obj at a time
      * meaning that if I'm looking for one particular date, i'd have to iterate
@@ -64,9 +72,16 @@ let stateVaxCSV = d3.csv(
      *   The parsing of this data will be done when drawing the map
      */
 
+    if (stateVaxObj.date === threeDaysAgo) {
+      threeDaysAgoStateTotalVax[stateVaxObj.location] =
+        stateVaxObj.people_fully_vaccinated;
+    }
+
     if (stateVaxObj.date == twoDaysAgo) {
+      dateTwoDaysAgo = stateVaxObj.date;
       twoDaysAgoStateTotalVax[stateVaxObj.location] =
         stateVaxObj.people_fully_vaccinated;
+      twoDaysAgoVaxRecords[stateVaxObj.location] = stateVaxObj;
     }
 
     if (stateVaxObj.date == previousDay) {
@@ -112,14 +127,19 @@ let tooltip = d3
   .style("visibility", "hidden");
 
 Promise.all([usAlbersJson, stateVaxCSV, statePopulationObj]).then((values) => {
-  if (Object.keys(stateVaxRecords).length < 1) {
-    console.log("here");
+  if (
+    Object.keys(stateVaxRecords).length < 1 &&
+    Object.keys(previousDayStateTotalVax).length < 1
+  ) {
+    drawMap(values[0], twoDaysAgoVaxRecords, values[2]);
+  } else if (Object.keys(stateVaxRecords).length < 1) {
     drawMap(values[0], previousDayStateTotalVax, values[2]);
   } else {
-    console.log("hello");
     drawMap(values[0], stateVaxRecords, values[2]);
   }
 });
+
+console.log("three days: ", threeDaysAgoStateTotalVax);
 
 let drawMap = (usTopoData, stateVax, statePopulation) => {
   try {
@@ -137,9 +157,6 @@ let drawMap = (usTopoData, stateVax, statePopulation) => {
       .attr("fill", (d) => {
         let stateName = d.properties.name;
 
-        console.log("two days ago: ", twoDaysAgoStateTotalVax);
-        console.log("stateVax: ", stateVax);
-
         // stateName has other territories of the united states like Virigin Islands included
         let percentage = statePopulation[stateName]
           ? stateName === "New York"
@@ -154,9 +171,22 @@ let drawMap = (usTopoData, stateVax, statePopulation) => {
         // turning percentage into a float with 2 decimal points
         percentage = Number.parseFloat(percentage).toPrecision(4);
 
+        d.properties.percentage = percentage;
+
         let increasedAmount;
 
-        if (Object.keys(stateVaxRecords).length < 1) {
+        if (
+          Object.keys(stateVaxRecords).length < 1 &&
+          Object.keys(previousDayStateTotalVax).length < 1
+        ) {
+          increasedAmount = statePopulation[stateName]
+            ? stateName === "New York"
+              ? stateVax["New York State"].people_fully_vaccinated -
+                threeDaysAgoStateTotalVax["New York State"]
+              : stateVax[stateName].people_fully_vaccinated -
+                threeDaysAgoStateTotalVax[stateName]
+            : 0;
+        } else if (Object.keys(stateVaxRecords).length < 1) {
           // use twoDaysAgo obj
           // first check if the state !== to a territory
 
@@ -178,11 +208,18 @@ let drawMap = (usTopoData, stateVax, statePopulation) => {
             : 0;
         }
 
-        d.properties.percentage = percentage;
         // d.properties.increasedPercentage = increasedPercentage;
         d.properties.increasedAmount = increasedAmount;
         d.properties.statePopulation = statePopulation[stateName];
-        d.properties.date = date;
+
+        if (
+          Object.keys(stateVaxRecords).length < 1 &&
+          Object.keys(previousDayStateTotalVax).length < 1
+        ) {
+          d.properties.date = dateTwoDaysAgo;
+        } else {
+          d.properties.date = date;
+        }
 
         d.properties.fully_vaccinated =
           stateName === "New York"
@@ -205,6 +242,7 @@ let drawMap = (usTopoData, stateVax, statePopulation) => {
         } = d.properties;
 
         tooltip.transition().duration(200).style("opacity", 0.9);
+        //  <span>Increase from the previous day: ${increasedAmount} people</span>
         tooltip.html(`
          <div
          style="position: absolute;  display: flex; justify-content: center; align-items: center;
@@ -213,7 +251,6 @@ let drawMap = (usTopoData, stateVax, statePopulation) => {
             <span>${name} (as of ${date})</span>
             <span>Population (as of 2019): ${statePopulation}</span>
             <span>Number of people vaccinated: ${fully_vaccinated}</span>
-            <span>Increase from the previous day: ${increasedAmount} people</span>
             <span>Percentage of people vaccinated: ${percentage}%</span>
           </div>
           `);
