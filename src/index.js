@@ -3,9 +3,11 @@ import legend from "../config/legend";
 
 let height = 610;
 let width = 975;
-//let padding = 20;
 
-// map takes in an object and callback
+/**
+ * Things to figure out: how to calculate time 3 days ago at the beginning of the month
+ * Beginning of the month is the issue
+ */
 
 let svg = d3
   .select("body")
