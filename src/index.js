@@ -24,14 +24,29 @@ let usAlbersJson = d3.json(
 );
 
 let day = new Date();
+
+// today
 let stateVaxRecords = {};
+
+// yesterday
 let previousDayStateTotalVax = {};
+
+// two days ago
 let twoDaysAgoStateTotalVax = {};
-let threeDaysAgoStateTotalVax = {};
 let twoDaysAgoVaxRecords = {};
+
+// three days ago 
+let threeDaysAgoStateTotalVax = {};
+
+
+// five days ago
+let fiveDaysAgoStateTotalVax = {};
+let fiveDaysAgoVaxRecords = {};
+
 
 let date;
 let dateTwoDaysAgo;
+let dateFiveDaysAgo;
 
 window.stateVaxRecords = stateVaxRecords;
 
@@ -52,12 +67,15 @@ let stateVaxCSV = d3.csv(
     let todayMinusThree = new Date(today);
     todayMinusThree.setDate(todayMinusTwo.getDate() - 3);
 
+    let todayMinusFive = new Date(today)
+    todayMinusFive.setDate(todayMinusTwo.getDate() - 5);
+
     let currentDay = formatTime(today);
     let previousDay = formatTime(yesterday);
     let twoDaysAgo = formatTime(todayMinusTwo);
     let threeDaysAgo = formatTime(todayMinusThree);
+    let fiveDaysAgo = formatTime(todayMinusFive)
 
-    console.log("this is three days ago: ", threeDaysAgo);
     /**
      * issue: the data coming back is one obj at a time
      * meaning that if I'm looking for one particular date, i'd have to iterate
@@ -73,6 +91,12 @@ let stateVaxCSV = d3.csv(
      *
      *   The parsing of this data will be done when drawing the map
      */
+
+    if(stateVaxObj.date === fiveDaysAgo){
+      dateFiveDaysAgo = stateVaxObj.date
+      fiveDaysAgoStateTotalVax[stateVaxObj.location] = stateVaxObj.people_fully_vaccinated
+      fiveDaysAgoVaxRecords[stateVaxObj.location] = stateVaxObj
+    }
 
     if (stateVaxObj.date === threeDaysAgo) {
       threeDaysAgoStateTotalVax[stateVaxObj.location] =
@@ -128,20 +152,30 @@ let tooltip = d3
   .style("padding-bottom", "20px")
   .style("visibility", "hidden");
 
-Promise.all([usAlbersJson, stateVaxCSV, statePopulationObj]).then((values) => {
-  if (
-    Object.keys(stateVaxRecords).length < 1 &&
-    Object.keys(previousDayStateTotalVax).length < 1
-  ) {
-    drawMap(values[0], twoDaysAgoVaxRecords, values[2]);
-  } else if (Object.keys(stateVaxRecords).length < 1) {
-    drawMap(values[0], previousDayStateTotalVax, values[2]);
-  } else {
-    drawMap(values[0], stateVaxRecords, values[2]);
-  }
-});
+try{
+  Promise.all([usAlbersJson, stateVaxCSV, statePopulationObj]).then((values) => {
+    if(Object.keys(stateVaxRecords).length < 1 && 
+       Object.keys(previousDayStateTotalVax).length < 1 && 
+       Object.keys(threeDaysAgoStateTotalVax).length < 1
+    ){
+      console.log("records from 5 days ago")
+      drawMap(values[0], fiveDaysAgoStateTotalVax, values[2])
+    }else if (
+      Object.keys(stateVaxRecords).length < 1 &&
+      Object.keys(previousDayStateTotalVax).length < 1
+    ) {
+      drawMap(values[0], twoDaysAgoVaxRecords, values[2]);
+    } else if (Object.keys(stateVaxRecords).length < 1) {
+      drawMap(values[0], previousDayStateTotalVax, values[2]);
+    } else {
+      drawMap(values[0], stateVaxRecords, values[2]);
+    }
+  });
+}catch(e){
+  console.log("Error: ",e )
+}
 
-console.log("three days: ", threeDaysAgoStateTotalVax);
+
 
 let drawMap = (usTopoData, stateVax, statePopulation) => {
   try {
@@ -158,6 +192,9 @@ let drawMap = (usTopoData, stateVax, statePopulation) => {
       .append("path")
       .attr("fill", (d) => {
         let stateName = d.properties.name;
+
+        console.log("stateName: ", stateName)
+        
 
         // stateName has other territories of the united states like Virigin Islands included
         let percentage = statePopulation[stateName]
